@@ -20,12 +20,10 @@ namespace rust {
 template<class T>
 class option;
 
-struct none_t {
-    struct do_not_use {};
-    constexpr explicit none_t(do_not_use, do_not_use) noexcept {}
-};
+namespace { struct do_not_use{}; }
 
-static constexpr none_t none {none_t::do_not_use{}, none_t::do_not_use{}};
+struct none_t { constexpr explicit none_t(do_not_use, do_not_use) noexcept {} };
+static constexpr none_t none {do_not_use{}, do_not_use{}};
 
 template<class T, class E>
 class result;
@@ -2035,7 +2033,7 @@ struct option_copy_assign_base<T, false> : option_move_base<T> {
 
 // This class manages conditionally having a trivial move assignment operator
 template <class T, bool = std::is_trivially_destructible_v<T>
-    && std::is_trivially_move_constructible_v<T>
+        && std::is_trivially_move_constructible_v<T>
         && std::is_trivially_move_assignable_v<T>>
 struct option_move_assign_base : option_copy_assign_base<T> {
         using option_copy_assign_base<T>::option_copy_assign_base;
@@ -2363,7 +2361,7 @@ public:
 
     // expect_none
     template<class Msg>
-    [[noreturn]] constexpr void expect_none(Msg&& msg) const {
+    constexpr void expect_none(Msg&& msg) const {
         if (!*this) RUST_ATTR_LIKELY
             return;
         panic(std::forward<Msg>(msg));
@@ -2401,7 +2399,7 @@ public:
     }
 
     // unwrap_none
-    [[noreturn]] constexpr void unwrap_none() const noexcept(false) {
+    constexpr void unwrap_none() const noexcept(false) {
         if (!*this) RUST_ATTR_LIKELY
             return;
         panic("rust::option::unwrap_none panicked");
@@ -2901,7 +2899,7 @@ public:
         static_assert(std::is_invocable_v<Fn>, 
             "rust::option<T>::ok_or_else(Fn) requires Fn to be invocable with no arguments");
         using E = std::invoke_result_t<Fn>;
-        return bool(*this) ? result<T, E>{ok_tag, **this};
+        return bool(*this) ? result<T, E>{ok_tag, **this}
                            : result<T, E>{err_tag, std::forward<Fn>(fn)()};
     }
 
@@ -2910,7 +2908,7 @@ public:
         static_assert(std::is_invocable_v<Fn>, 
             "rust::option<T>::ok_or_else(Fn) requires Fn to be invocable with no arguments");
         using E = std::invoke_result_t<Fn>;
-        return bool(*this) ? result<T, E>{ok_tag, std::move(**this)};
+        return bool(*this) ? result<T, E>{ok_tag, std::move(**this)}
                            : result<T, E>{err_tag, std::forward<Fn>(fn)()};
     }
 
@@ -2947,5 +2945,9 @@ public:
         return std::invoke(detail::overloaded{std::forward<Fns>(fns)...}, none);
     }
 };
+
+// user-defined deduction guide
+template <class T>
+option(T) -> option<T>;
 
 }

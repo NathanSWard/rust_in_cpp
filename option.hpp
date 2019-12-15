@@ -37,6 +37,17 @@ option<T>::transpose() && {
                         : ok<Ok, Err>(none);
 }
 
+// some
+template<class T, class... Args>
+[[nodiscard]] inline constexpr auto some(Args&&... args) {
+    return option<T>{some_tag, std::forward<Args>(args)...};
+}
+
+template<class T, class U, class... Args>
+[[nodiscard]] inline constexpr auto some(std::initializer_list<U> il, Args&&... args) {
+    return option<T>{some_tag, il, std::forward<Args>(args)...};
+}
+
 /// Compares two option objects
 template <class T, class U> 
 [[nodiscard]] inline constexpr bool operator==(option<T> const& lhs, option<U> const& rhs) {
@@ -170,32 +181,6 @@ void swap(option<T>& lhs, option<T>& rhs)
 noexcept(noexcept(lhs.swap(rhs))) {
     return lhs.swap(rhs);
 }
-
-namespace detail {
-struct _secret_tag {};
-} // namespace detail
-
-// some(T) -> option<T>
-template <class T = detail::_secret_tag, class U,
-    class Ret =
-    std::conditional_t<std::is_same_v<T, detail::_secret_tag>,
-    std::decay_t<U>, T>>
-[[nodiscard]] inline constexpr option<Ret> some(U&& v) {
-    return option<Ret>{std::forward<U>(v)};
-}
-
-template <class T, class... Args>
-[[nodiscard]] inline constexpr option<T> some(Args&&... args) {
-    return option<T>{some_tag, std::forward<Args>(args)...};
-}
-template <class T, class U, class... Args>
-[[nodiscard]] inline constexpr option<T> some(std::initializer_list<U> il, Args&&... args) {
-    return option<T>{some_tag, il, std::forward<Args>(args)...};
-}
-
-// user-defined deduction guide
-template <class T>
-option(T) -> option<T>;
 
 } // namespace rust
 
