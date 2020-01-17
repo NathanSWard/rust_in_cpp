@@ -1,9 +1,9 @@
-// option.hpp
+// Option.hpp
 
 #pragma once
 
-#include "_detail.hpp"
 #include "_include.hpp"
+#include "_detail.hpp"
 #include "_option_result_base.hpp"
 #include "panic.hpp"
 #include "result.hpp"
@@ -13,180 +13,180 @@
 #include <utility>
 
 namespace rust {
+namespace option {
 
-// option<T>::transpose
+// Option<T>::transpose
 template<class T>
 template<class U>
-[[nodiscard]] constexpr std::enable_if_t<detail::is_result_v<U>, result<option<typename U::ok_type>, typename U::err_type>> 
-option<T>::transpose() const& {
-    using Ok = typename U::ok_type;
-    using Err = typename U::err_type;
-    return bool(*this) ? (bool(**this) ? ok<Ok, Err>((**this).unwrap_unsafe()) 
-                                       : err<Ok, Err>((**this).unwrap_err_unsafe())) 
-                        : ok<Ok, Err>(none);
+[[nodiscard]] constexpr std::enable_if_t<rust::detail::is_result_v<U>, result::Result<Option<typename U::ok_type>, typename U::err_type>> 
+Option<T>::transpose() && {
+    using ok_t = typename U::ok_type;
+    using err_t = typename U::err_type;
+    return bool(*this) ? (bool(**this) ? result::Ok<ok_t, err_t>(std::move((**this).unwrap_unsafe())) 
+                                       : result::Err<ok_t, err_t>(std::move((**this).unwrap_err_unsafe()))) 
+                        : result::Ok<ok_t, err_t>(None);
 }
 
 template<class T>
 template<class U>
-[[nodiscard]] constexpr std::enable_if_t<detail::is_result_v<U>, result<option<typename U::ok_type>, typename U::err_type>> 
-option<T>::transpose() && {
-    using Ok = typename U::ok_type;
-    using Err = typename U::err_type;
-    return bool(*this) ? (bool(**this) ? ok<Ok, Err>(std::move((**this).unwrap_unsafe())) 
-                                       : err<Ok, Err>(std::move((**this).unwrap_err_unsafe()))) 
-                        : ok<Ok, Err>(none);
+[[nodiscard]] constexpr std::enable_if_t<rust::detail::is_result_v<U>, result::Result<Option<typename U::ok_type>, typename U::err_type>> 
+Option<T&>::transpose() && {
+    using ok_t = typename U::ok_type;
+    using err_t = typename U::err_type;
+    return bool(*this) ? (bool(**this) ? result::Ok<ok_t, err_t>((**this).unwrap_unsafe()) 
+                                       : result::Err<ok_t, err_t>((**this).unwrap_err_unsafe())) 
+                       : result::Ok<ok_t, err_t>(None);
 }
 
-// some
+// Some
 template<class T, class... Args>
-[[nodiscard]] inline constexpr auto some(Args&&... args) {
-    return option<T>{some_tag, std::forward<Args>(args)...};
+[[nodiscard]] inline constexpr auto Some(Args&&... args) {
+    return Option<T>{some_tag, std::forward<Args>(args)...};
 }
 
 template<class T, class U, class... Args>
-[[nodiscard]] inline constexpr auto some(std::initializer_list<U> il, Args&&... args) {
-    return option<T>{some_tag, il, std::forward<Args>(args)...};
+[[nodiscard]] inline constexpr auto Some(std::initializer_list<U> il, Args&&... args) {
+    return Option<T>{some_tag, il, std::forward<Args>(args)...};
 }
 
-/// Compares two option objects
+/// Compares two Option objects
 template <class T, class U> 
-[[nodiscard]] inline constexpr bool operator==(option<T> const& lhs, option<U> const& rhs) {
+[[nodiscard]] inline constexpr bool operator==(Option<T> const& lhs, Option<U> const& rhs) {
     return bool(lhs) == bool(rhs) && (!bool(lhs) || *lhs == *rhs);
 }
 template <class T, class U>
-[[nodiscard]] inline constexpr bool operator!=(option<T> const& lhs, option<U> const& rhs) {
+[[nodiscard]] inline constexpr bool operator!=(Option<T> const& lhs, Option<U> const& rhs) {
     return bool(lhs) != bool(rhs) || (bool(lhs) && *lhs != *rhs);
 }
 template <class T, class U>
-[[nodiscard]] inline constexpr bool operator<(option<T> const& lhs, option<U> const& rhs) {
+[[nodiscard]] inline constexpr bool operator<(Option<T> const& lhs, Option<U> const& rhs) {
     return bool(rhs) && (!bool(lhs) || *lhs < *rhs);
 }
 template <class T, class U>
-[[nodiscard]] inline constexpr bool operator>(option<T> const& lhs, option<U> const& rhs) {
+[[nodiscard]] inline constexpr bool operator>(Option<T> const& lhs, Option<U> const& rhs) {
     return bool(lhs) && (!bool(rhs) || *lhs > * rhs);
 }
 template <class T, class U>
-[[nodiscard]] inline constexpr bool operator<=(option<T> const& lhs, option<U> const& rhs) {
+[[nodiscard]] inline constexpr bool operator<=(Option<T> const& lhs, Option<U> const& rhs) {
     return !bool(lhs) || (bool(rhs) && *lhs <= *rhs);
 }
 template <class T, class U>
-[[nodiscard]] inline constexpr bool operator>=(option<T> const& lhs, option<U> const& rhs) {
+[[nodiscard]] inline constexpr bool operator>=(Option<T> const& lhs, Option<U> const& rhs) {
     return !bool(rhs) || (bool(lhs) && *lhs >= *rhs);
 }
 
-/// Compares an option to a `none`
+/// Compares an Option to a `None`
 template <class T>
-[[nodiscard]] inline constexpr bool operator==(option<T> const& lhs, none_t) noexcept {
+[[nodiscard]] inline constexpr bool operator==(Option<T> const& lhs, None_t) noexcept {
     return !bool(lhs);
 }
 template <class T>
-[[nodiscard]] inline constexpr bool operator==(none_t, option<T> const& rhs) noexcept {
+[[nodiscard]] inline constexpr bool operator==(None_t, Option<T> const& rhs) noexcept {
     return !bool(rhs);
 }
 template <class T>
-[[nodiscard]] inline constexpr bool operator!=(option<T> const& lhs, none_t) noexcept {
+[[nodiscard]] inline constexpr bool operator!=(Option<T> const& lhs, None_t) noexcept {
     return bool(lhs);
 }
 template <class T>
-[[nodiscard]] inline constexpr bool operator!=(none_t, option<T> const& rhs) noexcept {
+[[nodiscard]] inline constexpr bool operator!=(None_t, Option<T> const& rhs) noexcept {
     return bool(rhs);
 }
 template <class T>
-[[nodiscard]] inline constexpr bool operator<(option<T> const&, none_t) noexcept {
+[[nodiscard]] inline constexpr bool operator<(Option<T> const&, None_t) noexcept {
     return false;
 }
 template <class T>
-[[nodiscard]] inline constexpr bool operator<(none_t, option<T> const& rhs) noexcept {
+[[nodiscard]] inline constexpr bool operator<(None_t, Option<T> const& rhs) noexcept {
     return bool(rhs);
 }
 template <class T>
-[[nodiscard]] inline constexpr bool operator<=(option<T> const& lhs, none_t) noexcept {
+[[nodiscard]] inline constexpr bool operator<=(Option<T> const& lhs, None_t) noexcept {
     return !bool(lhs);
 }
 template <class T>
-[[nodiscard]] inline constexpr bool operator<=(none_t, option<T> const&) noexcept {
+[[nodiscard]] inline constexpr bool operator<=(None_t, Option<T> const&) noexcept {
     return true;
 }
 template <class T>
-[[nodiscard]] inline constexpr bool operator>(option<T> const& lhs, none_t) noexcept {
+[[nodiscard]] inline constexpr bool operator>(Option<T> const& lhs, None_t) noexcept {
     return bool(lhs);
 }
 template <class T>
-[[nodiscard]] inline constexpr bool operator>(none_t, option<T> const&) noexcept {
+[[nodiscard]] inline constexpr bool operator>(None_t, Option<T> const&) noexcept {
     return false;
 }
 template <class T>
-[[nodiscard]] inline constexpr bool operator>=(option<T> const&, none_t) noexcept {
+[[nodiscard]] inline constexpr bool operator>=(Option<T> const&, None_t) noexcept {
     return true;
 }
 template <class T>
-[[nodiscard]] inline constexpr bool operator>=(none_t, option<T> const& rhs) noexcept {
+[[nodiscard]] inline constexpr bool operator>=(None_t, Option<T> const& rhs) noexcept {
     return !bool(rhs);
 }
 
-/// Compares the option with a value.
+/// Compares the Option with a value.
 template <class T, class U>
-[[nodiscard]] inline constexpr bool operator==(option<T> const& lhs, U const& rhs) {
+[[nodiscard]] inline constexpr bool operator==(Option<T> const& lhs, U const& rhs) {
     return bool(lhs) ? *lhs == rhs : false;
 }
 template <class T, class U>
-[[nodiscard]] inline constexpr bool operator==(U const& lhs, option<T> const& rhs) {
+[[nodiscard]] inline constexpr bool operator==(U const& lhs, Option<T> const& rhs) {
     return bool(rhs) ? lhs == *rhs : false;
 }
 template <class T, class U>
-[[nodiscard]] inline constexpr bool operator!=(option<T> const& lhs, U const& rhs) {
+[[nodiscard]] inline constexpr bool operator!=(Option<T> const& lhs, U const& rhs) {
     return bool(lhs) ? *lhs != rhs : true;
 }
 template <class T, class U>
-[[nodiscard]] inline constexpr bool operator!=(U const& lhs, option<T> const& rhs) {
+[[nodiscard]] inline constexpr bool operator!=(U const& lhs, Option<T> const& rhs) {
     return bool(rhs) ? lhs != *rhs : true;
 }
 template <class T, class U>
-[[nodiscard]] inline constexpr bool operator<(option<T> const& lhs, U const& rhs) {
+[[nodiscard]] inline constexpr bool operator<(Option<T> const& lhs, U const& rhs) {
     return bool(lhs) ? *lhs < rhs : true;
 }
 template <class T, class U>
-[[nodiscard]] inline constexpr bool operator<(U const& lhs, option<T> const& rhs) {
+[[nodiscard]] inline constexpr bool operator<(U const& lhs, Option<T> const& rhs) {
     return bool(rhs) ? lhs < *rhs : false;
 }
 template <class T, class U>
-[[nodiscard]] inline constexpr bool operator<=(option<T> const& lhs, U const& rhs) {
+[[nodiscard]] inline constexpr bool operator<=(Option<T> const& lhs, U const& rhs) {
     return bool(lhs) ? *lhs <= rhs : true;
 }
 template <class T, class U>
-[[nodiscard]] inline constexpr bool operator<=(U const& lhs, option<T> const& rhs) {
+[[nodiscard]] inline constexpr bool operator<=(U const& lhs, Option<T> const& rhs) {
     return bool(rhs) ? lhs <= *rhs : false;
 }
 template <class T, class U>
-[[nodiscard]] inline constexpr bool operator>(option<T> const& lhs, U const& rhs) {
+[[nodiscard]] inline constexpr bool operator>(Option<T> const& lhs, U const& rhs) {
     return bool(lhs) ? *lhs > rhs : false;
 }
 template <class T, class U>
-[[nodiscard]] inline constexpr bool operator>(U const& lhs, option<T> const& rhs) {
+[[nodiscard]] inline constexpr bool operator>(U const& lhs, Option<T> const& rhs) {
     return bool(rhs) ? lhs > * rhs : true;
 }
 template <class T, class U>
-[[nodiscard]] inline constexpr bool operator>=(option<T> const& lhs, U const& rhs) {
+[[nodiscard]] inline constexpr bool operator>=(Option<T> const& lhs, U const& rhs) {
     return bool(lhs) ? *lhs >= rhs : false;
 }
 template <class T, class U>
-[[nodiscard]] inline constexpr bool operator>=(U const& lhs, option<T> const& rhs) {
+[[nodiscard]] inline constexpr bool operator>=(U const& lhs, Option<T> const& rhs) {
     return bool(rhs) ? lhs >= *rhs : true;
 }
 
 template <class T,
     std::enable_if_t<std::is_move_constructible_v<T>> * = nullptr,
     std::enable_if_t<std::is_swappable_v<T>> * = nullptr>
-void swap(option<T>& lhs, option<T>& rhs) 
+void swap(Option<T>& lhs, Option<T>& rhs) 
 noexcept(noexcept(lhs.swap(rhs))) {
     return lhs.swap(rhs);
 }
 
+} // namesace option
 } // namespace rust
 
 namespace {
-// from libc++ 
-// SFINAE protection for std::hash<> specialization
 template <class Key, class Hash>
 using _check_hash_requirements = std::bool_constant<
     std::is_copy_constructible_v<Hash> &&
@@ -208,8 +208,8 @@ using _enable_hash_helper = _enable_hash_helper_impl<T,
 
 namespace std {
 template<class T>
-struct hash<_enable_hash_helper<rust::option<T>, remove_const_t<T>>> {
-    [[nodiscard]] constexpr size_t operator()(rust::option<T> const& opt) const {
+struct hash<_enable_hash_helper<rust::option::Option<T>, remove_const_t<T>>> {
+    [[nodiscard]] constexpr size_t operator()(rust::option::Option<T> const& opt) const {
         return bool(opt) ? hash<remove_const_t<T>>(*opt) : 0;
     }
 };

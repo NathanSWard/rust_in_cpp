@@ -1,9 +1,9 @@
-// result.hpp
+// Result.hpp
 
 #pragma once
 
-#include "_detail.hpp"
 #include "_include.hpp"
+#include "_detail.hpp"
 #include "_option_result_base.hpp"
 #include "option.hpp"
 #include "panic.hpp"
@@ -13,33 +13,109 @@
 #include <utility>
 
 namespace rust {
+namespace result {
 
-// result<T, E>::transpose
+// Result<T, E>::transpose
 template<class T, class E>
 template<class U>
-[[nodiscard]] constexpr std::enable_if_t<detail::is_option_v<U>, option<result<typename U::value_type, E>>> 
-result<T, E>::transpose() const& {
-    using Opt = option<result<typename U::value_type, E>>;
-    return is_ok() ? Opt{std::in_place, ok_tag, *get_val()} : Opt{std::in_place, err_tag, get_err()};
+[[nodiscard]] constexpr std::enable_if_t<rust::detail::is_option_v<U>, option::Option<Result<typename U::value_type, E>>> 
+Result<T, E>::transpose() const& {
+    using Opt = option::Option<Result<typename U::value_type, E>>;
+    if (is_ok()) {
+        if (get_val())
+            return Opt{ok_tag, *get_val()};
+        return Opt{option::None};
+    }   
+    return Opt{err_tag, get_err()};
 }
 
 template<class T, class E>
 template<class U>
-[[nodiscard]] constexpr std::enable_if_t<detail::is_option_v<U>, option<result<typename U::value_type, E>>>  
-result<T, E>::transpose() && {
-    using Opt = option<result<typename U::value_type, E>>;
-    return is_ok() ? Opt{std::in_place, ok_tag, std::move(*get_val())} : Opt{std::in_place, err_tag, std::move(get_err())};
+[[nodiscard]] constexpr std::enable_if_t<rust::detail::is_option_v<U>, option::Option<Result<typename U::value_type, E>>>  
+Result<T, E>::transpose() && {
+    using Opt = option::Option<Result<typename U::value_type, E>>;
+    if (is_ok()) {
+        if (get_val())
+            return Opt{ok_tag, std::move(*get_val())};
+        return Opt{option::None};
+    }   
+    return Opt{err_tag, std::move(get_err())};
+}
+
+template<class T, class E>
+template<class U>
+[[nodiscard]] constexpr std::enable_if_t<rust::detail::is_option_v<U>, option::Option<Result<typename U::value_type, E>>> 
+Result<T&, E>::transpose() const& {
+    using Opt = option::Option<Result<typename U::value_type, E>>;
+    if (is_ok()) {
+        if (get_val())
+            return Opt{ok_tag, *get_val()};
+        return Opt{option::None};
+    }   
+    return Opt{err_tag, get_err()};
+}
+
+template<class T, class E>
+template<class U>
+[[nodiscard]] constexpr std::enable_if_t<rust::detail::is_option_v<U>, option::Option<Result<typename U::value_type, E>>> 
+Result<T&, E>::transpose() && {
+    using Opt = option::Option<Result<typename U::value_type, E>>;
+    if (is_ok()) {
+        if (get_val())
+            return Opt{ok_tag, *get_val()};
+        return Opt{option::None};
+    }   
+    return Opt{err_tag, std::move(get_err())};
+}
+
+template<class T, class E>
+template<class U>
+[[nodiscard]] constexpr std::enable_if_t<rust::detail::is_option_v<U>, option::Option<Result<typename U::value_type, E&>>> 
+Result<T, E&>::transpose() const& {
+    using Opt = option::Option<Result<typename U::value_type, E&>>;
+    if (is_ok()) {
+        if (get_val())
+            return Opt{ok_tag, *get_val()};
+        return Opt{option::None};
+    }   
+    return Opt{err_tag, get_err()};
+}
+
+template<class T, class E>
+template<class U>
+[[nodiscard]] constexpr std::enable_if_t<rust::detail::is_option_v<U>, option::Option<Result<typename U::value_type, E&>>> 
+Result<T, E&>::transpose() && {
+    using Opt = option::Option<Result<typename U::value_type, E&>>;
+    if (is_ok()) {
+        if (get_val())
+            return Opt{ok_tag, std::move(*get_val())};
+        return Opt{option::None};
+    }   
+    return Opt{err_tag, get_err()};
+}
+
+template<class T, class E>
+template<class U>
+[[nodiscard]] constexpr std::enable_if_t<rust::detail::is_option_v<U>, option::Option<Result<typename U::value_type, E&>>> 
+Result<T&, E&>::transpose() const {
+    using Opt = option::Option<Result<typename U::value_type, E&>>;
+    if (is_ok()) {
+        if (get_val())
+            return Opt{ok_tag, *get_val()};
+        return Opt{option::None};
+    }   
+    return Opt{err_tag, get_err()};
 }
 
 template <class T, class E, class U, class F>
-[[nodiscard]] inline constexpr bool operator==(result<T, E> const& lhs, const result<U, F> &rhs) {
+[[nodiscard]] inline constexpr bool operator==(Result<T, E> const& lhs, const Result<U, F> &rhs) {
     return (lhs.is_ok() != rhs.is_ok())
         ? false
         : (!lhs.is_ok() ? lhs.unwrap_err_unsafe() == rhs.unwrap_err_unsafe() 
                         : lhs.unwrap_unsafe() == rhs.unwrap_unsafe());
 }
 template <class T, class E, class U, class F>
-[[nodiscard]] inline constexpr bool operator!=(result<T, E> const& lhs, result<U, F> const& rhs) {
+[[nodiscard]] inline constexpr bool operator!=(Result<T, E> const& lhs, Result<U, F> const& rhs) {
     return (lhs.is_ok() != rhs.is_ok())
         ? true
         : (!lhs.is_ok() ? lhs.unwrap_err_unsafe() != rhs.unwrap_err_unsafe() 
@@ -52,19 +128,20 @@ template <class T, class E,
                             detail::is_swappable<T>::value &&
                             std::is_move_constructible_v<E> &&
                             detail::is_swappable<E>::value>* = nullptr>
-inline void swap(result<T, E>& lhs, result<T, E>& rhs) 
+inline void swap(Result<T, E>& lhs, Result<T, E>& rhs) 
 noexcept(noexcept(lhs.swap(rhs))) {
     lhs.swap(rhs);
 }
 
+} // namespace result
 } // namespace rust
 
 namespace std {
-// std::hash<result<T, E>> specialization
+// std::hash<Result<T, E>> specialization
 template<class T, class E>
-struct hash<rust::result<T, E>> {
-    [[nodiscard]] constexpr size_t operator()(rust::result<T, E> const& res) const {
-        return res.is_ok() ? hash<T>(res.unwrap_unsafe()) : hash<E>(res.unwrap_err_unsafe());
+struct hash<rust::result::Result<T, E>> {
+    [[nodiscard]] constexpr size_t operator()(rust::result::Result<T, E> const& res) const {
+        return res.is_ok() ? hash<T>{res.unwrap_unsafe()}() : hash<E>{res.unwrap_err_unsafe()}();
     }
 };
 }

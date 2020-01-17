@@ -2,61 +2,45 @@
 
 #pragma once
 
+#include "_include.hpp"
+#include "thread/thread.hpp"
+#include "sys_common/thread.hpp"
+
 #include <exception>
 #include <iostream>
 #include <string>
 #include <utility>
 
-#if defined(__EXCEPTIONS) || defined(_CPPUNWIND)
-#define RUST_EXCEPTIONS_ENABLED
-#endif
-
 namespace rust {
 
-class custom_panic_exception : public std::exception {
-public:
-    template<class Msg>
-    explicit custom_panic_exception(Msg&& msg)
-        : msg_{std::forward<Msg>(msg)}
-    {}
-
-    char const* what() const noexcept final { return msg_.c_str(); }
-private:
-    std::string const msg_;
-};
-
-class default_panic_exception : public std::exception {
-public:
-    char const* what() const noexcept final { return "explicit panic"; }
-};
+template<class Msg>
+[[noreturn]] void panic(Msg&& msg) {
+#ifdef RUST_PANIC_SHOULD_ABORT
+    std::cerr << "rust::panic: " << msg << '\n';
+    std::abort();
+#else // RUST_PANIC_SHOULD_ABORT
+    if (thread::impl::update_panic_count(1) > 1) {
+        std::cerr << "thread panicked while panicking. aborting.\n";
+        std::abort();
+    }
+    std::cerr << "rust::panic: " << msg << '\n';
+    sys::thread_exit();
+#endif // RUST_PANIC_SHOULD_ABORT
+}
 
 [[noreturn]] void panic() {
-#ifdef RUST_EXCEPTIONS_ENABLED
-    throw default_panic_exception{};
-#else // ^^^RUST_EXCEPTIONS_ENABLED^^^
-    std::cerr << "rust::panic: explicit panic" << '\n';
-    std::terminate();
-#endif // RUST_EXCEPTIONS_ENABLED
+    panic("explicit panic");
 }
 
-template<class Ex, std::enable_if_t<std::is_base_of_v<std::exception, Ex>>* = nullptr>
-[[noreturn]] void panic(Ex&& ex) {
-#ifdef RUST_EXCEPTIONS_ENABLED
-    throw std::forward<Ex>(ex);
-#else // ^^^RUST_EXCEPTIONS_ENABLED^^^ 
-    std::cerr << "rust::panic: " << ex.what() << '\n';
-    std::terminate();
-#endif // RUST_EXCEPTIONS_ENABLED
+void assert(bool const b) {
+    if (!b)
+        panic("rust::assert() failed");
 }
 
-template<class Msg, std::enable_if_t<!std::is_base_of_v<std::exception, Msg>>* = nullptr>
-[[noreturn]] void panic(Msg&& msg) {
-#ifdef RUST_EXCEPTIONS_ENABLED
-    throw custom_panic_exception{std::forward<Msg>(msg)};
-#else // ^^^RUST_EXCEPTIONS_ENABLED^^^
-    std::cerr << "rust::panic: " << msg << '\n';
-    std::terminate();
-#endif // RUST_EXCEPTIONS_ENABLED
+template<class T, class U>
+void assert_eq(T const& t, U const& u) {
+    if (t != u)
+        panic("rust::assert_eq() failed");
 }
 
 } // namespace rust
