@@ -1442,50 +1442,50 @@ public:
     [[nodiscard]] constexpr T const& unwrap() const& noexcept(false) {
         if (is_ok()) RUST_ATTR_LIKELY
             return get_val();
-        panic("result::Result::unwrap() panicked");
+        panic("result::Result<T, E>::unwrap() panicked");
     }
 
     [[nodiscard]] constexpr T& unwrap() & noexcept(false) {
         if (is_ok()) RUST_ATTR_LIKELY
             return get_val();
-        panic(bad_result_ok_access<E>(get_err()));
+        panic("result::Result<T, E>::unwrap() panicked");
     }
 
     [[nodiscard]] constexpr T const&& unwrap() const&& noexcept(false) {
         if (is_ok()) RUST_ATTR_LIKELY
             return std::move(get_val());
-        panic(bad_result_ok_access<E>(std::move(get_err())));
+        panic("result::Result<T, E>::unwrap() panicked");
     }
 
     [[nodiscard]] constexpr T&& unwrap() && noexcept(false) {
         if (is_ok()) RUST_ATTR_LIKELY
             return std::move(get_val());
-        panic(bad_result_ok_access<E>(std::move(get_err())));
+        panic("result::Result<T, E>::unwrap() panicked");
     }
 
     // unwrap_err
     [[nodiscard]] constexpr E const& unwrap_err() const& noexcept(false) {
         if (is_err()) RUST_ATTR_LIKELY
             return unwrap_err_unsafe();
-        panic(bad_result_err_access<T>(get_val()));
+        panic("result::Result<T, E>::unwrap_err() panicked");
     }
 
     [[nodiscard]] constexpr E& unwrap_err() & noexcept(false) {
         if (is_err()) RUST_ATTR_LIKELY
             return unwrap_err_unsafe();
-        panic(bad_result_err_access<T>(get_val()));
+        panic("result::Result<T, E>::unwrap_err() panicked");
     }
 
     [[nodiscard]] constexpr E const&& unwrap_err() const&& noexcept(false) {
         if (is_err()) RUST_ATTR_LIKELY
             return std::move(unwrap_err_unsafe());
-        panic(bad_result_err_access<T>(std::move(get_val())));
+        panic("result::Result<T, E>::unwrap_err() panicked");
     }
 
     [[nodiscard]] constexpr E&& unwrap_err() && noexcept(false) {
         if (is_err()) RUST_ATTR_LIKELY
             return std::move(unwrap_err_unsafe());
-        panic(bad_result_err_access<T>(std::move(get_val())));
+        panic("result::Result<T, E>::unwrap_err() panicked");
     }
 
     // unwrap_or
@@ -2118,50 +2118,50 @@ public:
     [[nodiscard]] constexpr T& unwrap() & noexcept(false) {
         if (is_ok()) RUST_ATTR_LIKELY
             return get_val();
-        panic(bad_result_ok_access<E>(get_err()));
+        panic("result::Result<T&, E>::unwrap() panicked");
     }
 
     [[nodiscard]] constexpr T const& unwrap() const& noexcept(false) {
         if (is_ok()) RUST_ATTR_LIKELY
             return get_val();
-        panic(bad_result_ok_access<E>(get_err()));
+        panic("result::Result<T&, E>::unwrap() panicked");
     }
 
     [[nodiscard]] constexpr T& unwrap() && noexcept(false) {
         if (is_ok()) RUST_ATTR_LIKELY
             return get_val();
-        panic(bad_result_ok_access<E>(std::move(get_err())));
+        panic("result::Result<T&, E>::unwrap() panicked");
     }
 
     [[nodiscard]] constexpr T const& unwrap() const&& noexcept(false) {
         if (is_ok()) RUST_ATTR_LIKELY
             return get_val();
-        panic(bad_result_ok_access<E>(std::move(get_err())));
+        panic("result::Result<T&, E>::unwrap() panicked");
     }
 
     // unwrap_err
     [[nodiscard]] constexpr E const& unwrap_err() const& noexcept(false) {
         if (is_err()) RUST_ATTR_LIKELY
             return unwrap_err_unsafe();
-        panic(bad_result_err_access<T&>(get_val()));
+        panic("result::Result<T&, E>::unwrap_err() panicked");
     }
 
     [[nodiscard]] constexpr E& unwrap_err() & noexcept(false) {
         if (is_err()) RUST_ATTR_LIKELY
             return unwrap_err_unsafe();
-        panic(bad_result_err_access<T&>(get_val()));
+        panic("result::Result<T&, E>::unwrap_err() panicked");
     }
 
     [[nodiscard]] constexpr E const&& unwrap_err() const&& noexcept(false) {
         if (is_err()) RUST_ATTR_LIKELY
             return std::move(unwrap_err_unsafe());
-        panic(bad_result_err_access<T&>(get_val()));
+        panic("result::Result<T&, E>::unwrap_err() panicked");
     }
 
     [[nodiscard]] constexpr E&& unwrap_err() && noexcept(false) {
         if (is_err()) RUST_ATTR_LIKELY
             return std::move(unwrap_err_unsafe());
-        panic(bad_result_err_access<T&>(get_val()));
+        panic("result::Result<T&, E>::unwrap_err() panicked");
     }
 
     // unwrap_or
@@ -2360,7 +2360,7 @@ public:
                           !std::conjunction_v<std::is_scalar<T>, std::is_same<T, std::decay_t<U>>> &&
                           std::is_constructible_v<T, U> &&
                           std::is_assignable_v<G&, U>)>* = nullptr>
-    Result& operator=(U &&u) {
+    Result& operator=(U&& u) {
         if (is_ok())
             get_val() = std::forward<U>(u);
         else {
@@ -2376,12 +2376,12 @@ public:
                           !std::conjunction_v<std::is_scalar<T>, std::is_same<T, std::decay_t<U>>> &&
                           std::is_constructible_v<T, U> &&
                           std::is_assignable_v<G&, U>)>* = nullptr>
-    Result& operator=(U &&v) {
+    Result& operator=(U&& v) {
         if (is_ok())
             get_val() = std::forward<U>(v);
         else {
-            auto const tmp = err_ptr();
 #ifdef RUST_EXCEPTIONS_ENABLED
+            auto const tmp = err_ptr();
             try {
                 ::new (val_ptr()) T(std::forward<U>(v));
                 this->is_ok_ = true;
@@ -2770,50 +2770,50 @@ public:
     [[nodiscard]] constexpr T& unwrap() & noexcept(false) {
         if (is_ok()) RUST_ATTR_LIKELY
             return get_val();
-        panic(bad_result_ok_access<E&>(get_err()));
+        panic("result::Result<T, E&>::unwrap() panicked");
     }
 
     [[nodiscard]] constexpr T const& unwrap() const& noexcept(false) {
         if (is_ok()) RUST_ATTR_LIKELY
             return get_val();
-        panic(bad_result_ok_access<E&>(get_err()));
+        panic("result::Result<T, E&>::unwrap() panicked");
     }
 
     [[nodiscard]] constexpr T&& unwrap() && noexcept(false) {
         if (is_ok()) RUST_ATTR_LIKELY
             return std::move(get_val());
-        panic(bad_result_ok_access<E&>(get_err()));
+        panic("result::Result<T, E&>::unwrap() panicked");
     }
 
     [[nodiscard]] constexpr T const&& unwrap() const&& noexcept(false) {
         if (is_ok()) RUST_ATTR_LIKELY
             return std::move(get_val());
-        panic(bad_result_ok_access<E&>(get_err()));
+        panic("result::Result<T, E&>::unwrap() panicked");
     }
 
     // unwrap_err
     [[nodiscard]] constexpr E& unwrap_err() & noexcept(false) {
         if (is_err()) RUST_ATTR_LIKELY
             return unwrap_err_unsafe();
-        panic(bad_result_err_access<T>(get_val()));
+        panic("result::Result<T, E&>::unwrap_err() panicked");
     }
 
     [[nodiscard]] constexpr E const& unwrap_err() const& noexcept(false) {
         if (is_err()) RUST_ATTR_LIKELY
             return unwrap_err_unsafe();
-        panic(bad_result_err_access<T>(get_val()));
+        panic("result::Result<T, E&>::unwrap_err() panicked");
     }
 
     [[nodiscard]] constexpr E& unwrap_err() && noexcept(false) {
         if (is_err()) RUST_ATTR_LIKELY
             return unwrap_err_unsafe();
-        panic(bad_result_err_access<T>(std::move(get_val())));
+        panic("result::Result<T, E&>::unwrap_err() panicked");
     }
 
     [[nodiscard]] constexpr E const& unwrap_err() const&& noexcept(false) {
         if (is_err()) RUST_ATTR_LIKELY
             return unwrap_err_unsafe();
-        panic(bad_result_err_access<T>(std::move(get_val())));
+        panic("result::Result<T, E&>::unwrap_err() panicked");
     }
 
     // unwrap_or
@@ -3259,26 +3259,26 @@ public:
     [[nodiscard]] constexpr T& unwrap() noexcept(false) {
         if (is_ok()) RUST_ATTR_LIKELY
             return get_val();
-        panic(bad_result_ok_access<E&>(get_err()));
+        panic("result::Result<T&, E&>::unwrap() panicked");
     }
 
     [[nodiscard]] constexpr T const& unwrap() const noexcept(false) {
         if (is_ok()) RUST_ATTR_LIKELY
             return get_val();
-        panic(bad_result_ok_access<E&>(get_err()));
+        panic("result::Result<T&, E&>::unwrap() panicked");
     }
 
     // unwrap_err
     [[nodiscard]] constexpr E& unwrap_err() noexcept(false) {
         if (is_err()) RUST_ATTR_LIKELY
             return get_err();
-        panic(bad_result_err_access<T&>(get_val()));
+        panic("result::Result<T&, E&>::unwrap_err() panicked");
     }
 
     [[nodiscard]] constexpr E const& unwrap_err() const noexcept(false) {
         if (is_err()) RUST_ATTR_LIKELY
             return get_err();
-        panic(bad_result_err_access<T&>(get_val()));
+        panic("result::Result<T&, E&>::unwrap_err() panicked");
     }
 
     // unwrap_or
@@ -3769,7 +3769,7 @@ public:
 
     template <
         class U = T,
-        std::enable_if_t<std::is_convertible_v<U&&, T>> * = nullptr,
+        std::enable_if_t<std::is_convertible_v<U&&, T>>* = nullptr,
         detail::enable_forward_value_t<T, U> * = nullptr>
     constexpr Option(U&& u) 
         : base(some_tag, std::forward<U>(u)) 
@@ -3777,38 +3777,38 @@ public:
 
     template <
         class U = T,
-        std::enable_if_t<!std::is_convertible_v<U&&, T>> * = nullptr,
+        std::enable_if_t<!std::is_convertible_v<U&&, T>>* = nullptr,
         detail::enable_forward_value_t<T, U> * = nullptr>
     constexpr explicit Option(U&& u) 
         : base(some_tag, std::forward<U>(u)) 
     {}
 
     template <
-        class U, detail::enable_from_other_t<T, U, U const&> * = nullptr,
-        std::enable_if_t<std::is_convertible_v<U const&, T>> * = nullptr>
+        class U, detail::enable_from_other_t<T, U, U const&>* = nullptr,
+        std::enable_if_t<std::is_convertible_v<U const&, T>>* = nullptr>
     Option(Option<U> const& rhs) {
         if (rhs)
             this->construct(*rhs);
     }
 
-    template <class U, detail::enable_from_other_t<T, U, U const&> * = nullptr,
-        std::enable_if_t<!std::is_convertible_v<U const&, T>> * = nullptr>
+    template <class U, detail::enable_from_other_t<T, U, U const&>* = nullptr,
+        std::enable_if_t<!std::is_convertible_v<U const&, T>>* = nullptr>
     explicit Option(Option<U> const& rhs) {
         if (rhs)
             this->construct(*rhs);
     }
 
     template <
-        class U, detail::enable_from_other_t<T, U, U&&> * = nullptr,
-        std::enable_if_t<std::is_convertible_v<U&&, T>> * = nullptr>
+        class U, detail::enable_from_other_t<T, U, U&&>* = nullptr,
+        std::enable_if_t<std::is_convertible_v<U&&, T>>* = nullptr>
     Option(Option<U>&& rhs) {
         if (rhs)
             this->construct(std::move(*rhs));
     }
 
     template <
-        class U, detail::enable_from_other_t<T, U, U&&> * = nullptr,
-        std::enable_if_t<!std::is_convertible_v<U&&, T>> * = nullptr>
+        class U, detail::enable_from_other_t<T, U, U&&>* = nullptr,
+        std::enable_if_t<!std::is_convertible_v<U&&, T>>* = nullptr>
     explicit Option(Option<U>&& rhs) {
         if (rhs)
             this->construct(std::move(*rhs));
@@ -3826,7 +3826,7 @@ public:
     constexpr Option& operator=(Option const& rhs) = default;
     constexpr Option& operator=(Option&& rhs) = default;
 
-    template <class U = T, detail::enable_assign_forward_t<T, U> * = nullptr>
+    template <class U = T, detail::enable_assign_forward_t<T, U>* = nullptr>
     Option& operator=(U&& u) {
         if (*this)
             this->value_ = std::forward<U>(u);
@@ -3835,7 +3835,7 @@ public:
         return *this;
     }
 
-    template <class U, detail::enable_assign_from_other_t<T, U, U const&> * = nullptr>
+    template <class U, detail::enable_assign_from_other_t<T, U, U const&>* = nullptr>
     Option& operator=(Option<U> const& rhs) 
     noexcept(std::is_nothrow_copy_assignable_v<T> && std::is_nothrow_assignable_v<T, U const&>) {
         if (*this) {
@@ -3863,22 +3863,40 @@ public:
         return *this;
     }
 
-    // replace
-    template <class... Args> 
-    T& replace(Args&&... args) {
-        static_assert(std::is_constructible_v<T, Args&&...>,
-                      "Option<T>::replace(Args...) requires T to be constructible by Args...");
-        *this = None;
+    // emplace
+    template<class... Args>
+    constexpr T& emplace(Args&&... args) {
+        if (*this)
+            this->value_.~T();
         this->construct(std::forward<Args>(args)...);
         return **this;
     }
 
-    template <class U, class... Args>
-    std::enable_if_t<std::is_constructible_v<T, std::initializer_list<U>&, Args&&...>, T&>
-    replace(std::initializer_list<U> il, Args&&... args) {
-        *this = None;
+    template <class U, class... Args, std::enable_if_t<std::is_constructible_v<T, std::initializer_list<U>&, Args&&...>, int> = 0>
+    constexpr T& emplace(std::initializer_list<U> il, Args&&... args) {
+        if (*this)
+            this->value_.~T();
         this->construct(il, std::forward<Args>(args)...);
         return **this;
+    }
+
+    // replace
+    template <class... Args> 
+    [[nodiscard]] constexpr Option replace(Args&&... args) {
+        auto tmp = std::move(*this);
+        if (*this)
+            this->value_.~T();
+        this->construct(std::forward<Args>(args)...);
+        return tmp;
+    }
+
+    template <class U, class... Args, std::enable_if_t<std::is_constructible_v<T, std::initializer_list<U>&, Args&&...>, int> = 0>
+    [[nodiscard]] constexpr Option replace(std::initializer_list<U> il, Args&&... args) {
+        auto tmp = std::move(*this);
+        if (*this)
+            this->value_.~T();
+        this->construct(il, std::forward<Args>(args)...);
+        return tmp;
     }
 
     // is_none
@@ -3999,7 +4017,7 @@ public:
         static_assert(std::is_constructible_v<T, Args...>,
                       "Option<T>::get_or_insert(Args...) requires T to be constructible by Args...");
         if (!*this)
-            (void)replace(std::forward<Args>(args)...);
+            static_cast<void>(emplace(std::forward<Args>(args)...));
         return **this;
     }
 
@@ -4008,7 +4026,7 @@ public:
         static_assert(std::is_constructible_v<T, Args...>,
                       "Option<T>::get_or_insert(Args...) requires T to be constructible by Args...");
         if (!*this)
-            (void)replace(std::forward<Args>(args)...);
+            static_cast<void>(emplace(std::forward<Args>(args)...));
         return **this;
     }
 
@@ -4017,7 +4035,7 @@ public:
         static_assert(std::is_constructible_v<T, Args...>,
                       "Option<T>::get_or_insert(Args...) requires T to be constructible by Args...");
         if (!*this)
-            (void)replace(std::forward<Args>(args)...);
+            static_cast<void>(emplace(std::forward<Args>(args)...));
         return std::move(**this);
     }
 
@@ -4026,7 +4044,7 @@ public:
         static_assert(std::is_constructible_v<T, Args...>,
                       "Option<T>::get_or_insert(Args...) requires T to be constructible by Args...");
         if (!*this)
-            (void)replace(std::forward<Args>(args)...);
+            static_cast<void>(emplace(std::forward<Args>(args)...));
         return std::move(**this);
     }
 
@@ -4039,7 +4057,7 @@ public:
         static_assert(std::is_convertible_v<std::invoke_result_t<Fn>, T>,
                       "Option<T>::get_or_insert_with(Fn) requires Fn's return type to be convertible to T");
         if (!*this)
-            (void)replace(std::invoke(std::forward<Fn>(fn)));
+            static_cast<void>(emplace(std::invoke(std::forward<Fn>(fn))));
         return **this;
     }
 
@@ -4051,7 +4069,7 @@ public:
         static_assert(std::is_convertible_v<std::invoke_result_t<Fn>, T>,
                       "Option<T>::get_or_insert_with(Fn) requires Fn's return type to be convertible to T");
         if (!*this)
-            (void)replace(std::invoke(std::forward<Fn>(fn)));
+            static_cast<void>(emplace(std::invoke(std::forward<Fn>(fn))));
         return **this;
     }
 
@@ -4063,7 +4081,7 @@ public:
         static_assert(std::is_convertible_v<std::invoke_result_t<Fn>, T>,
                       "Option<T>::get_or_insert_with(Fn) requires Fn's return type to be convertible to T");
         if (!*this)
-            (void)replace(std::invoke(std::forward<Fn>(fn)));
+            static_cast<void>(emplace(std::invoke(std::forward<Fn>(fn))));
         return std::move(**this);
     }
 
@@ -4075,7 +4093,7 @@ public:
         static_assert(std::is_convertible_v<std::invoke_result_t<Fn>, T>,
                       "Option<T>::get_or_insert_with(Fn) requires Fn's return type to be convertible to T");
         if (!*this)
-            (void)replace(std::invoke(std::forward<Fn>(fn)));
+            static_cast<void>(emplace(std::invoke(std::forward<Fn>(fn)))_;
         return std::move(**this);
     }
 
@@ -4088,7 +4106,7 @@ public:
 
     // swap
     void swap(Option& rhs)
-    noexcept(std::is_nothrow_move_constructible_v<T>&& std::is_nothrow_swappable_v<T>) {
+    noexcept(std::is_nothrow_move_constructible_v<T> && std::is_nothrow_swappable_v<T>) {
         if (*this) {
             if (rhs)
                 std::swap(**this, *rhs);
@@ -4247,7 +4265,7 @@ public:
 
     // as_mut
     [[nodiscard]] constexpr Option<T&> as_mut() {
-        return bool(*this) ? Option<T&>{**this} : None;
+        return bool(*this) ? Option<T&>(**this) : None;
     }
 
     // as_pin_ref
@@ -4296,15 +4314,23 @@ public:
     template<class U = T, std::enable_if_t<!rust::detail::is_option_v<U>>* = nullptr>
     constexpr Option& operator=(U&& u) {
         static_assert(std::is_lvalue_reference_v<U>, "rust::Option<T&>::operator=(U) requires U to be an lvalue");
-        value_ = std::addressof(u);
+        value_ = static_cast<T*>(std::addressof(u));
         return *this;
     }
 
-    // replace
-    template<class U = T, std::enable_if_t<!rust::detail::is_option_v<U>>* = nullptr>
-    constexpr Option& replace(U&& u) noexcept {
+    // emplace
+    template<class U = T>
+    constexpr T& emplace(U&& u) noexcept {
         *this = std::forward<U>(u);
-        return *this;
+        return **this;
+    }
+
+    // replace
+    template<class U = T>
+    [[nodiscard]] constexpr Option replace(U&& u) noexcept {
+        auto tmp = std::move(*this);
+        *this = std::forward<U>(u);
+        return tmp;
     }
 
     // is_none
@@ -4434,16 +4460,16 @@ public:
 
     // get_or_insert
     template<class U>
-    [[nodiscard]] constexpr T& get_or_insert(T& t) && {
+    [[nodiscard]] constexpr T& get_or_insert(U&& u) && {
         if (!*this)
-            (void)replace(t);
+            static_cast<void>(emplace(u));
         return **this;
     }
 
     template<class U>
-    [[nodiscard]] constexpr T const& get_or_insert(T& t) const&& {
+    [[nodiscard]] constexpr T const& get_or_insert(U&& u) const&& {
         if (!*this)
-            (void)replace(t);
+            static_cast<void>(emplace(t));
         return **this;
     }
 
@@ -4456,7 +4482,7 @@ public:
         static_assert(std::is_invocable_r_v<T&, Fn>,
                       "Option<T&>::get_or_insert_with(Fn) requires Fn's return type to be convertible to T&");
         if (!*this)
-            (void)replace(std::invoke(std::forward<Fn>(fn)));
+            static_cast<void>(emplace(std::invoke(std::forward<Fn>(fn))));
         return **this;
     }
 
@@ -4468,7 +4494,7 @@ public:
         static_assert(std::is_invocable_r_v<T const&, Fn>,
                       "Option<T&>::get_or_insert_with(Fn) requires Fn's return type to be convertible to T const&");
         if (!*this)
-            (void)replace(std::invoke(std::forward<Fn>(fn)));
+            static_cast<void>(emplace(std::invoke(std::forward<Fn>(fn))));
         return **this;
     }
 
@@ -4667,7 +4693,7 @@ public:
 
     // as_mut
     [[nodiscard]] constexpr Option<T&> as_mut() & {
-        return bool(*this) ? Option<T&>{**this} : None;
+        return bool(*this) ? Option<T&>(**this) : None;
     }
 
     // as_pin_ref
