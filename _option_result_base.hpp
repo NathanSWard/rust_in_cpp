@@ -921,8 +921,9 @@ public:
         return *this;
     }
 
+    // emplace
     template<class... Args, std::enable_if_t<std::is_nothrow_constructible_v<T, Args&&...>>* = nullptr>
-    void emplace(Args&&... args) {
+    T& emplace(Args&&... args) {
         if (is_ok())
             get_val() = T(std::forward<Args>(args)...);
         else {
@@ -930,14 +931,17 @@ public:
             ::new (val_ptr()) T(std::forward<Args>(args)...);
             this->is_ok_ = true;
         }
+        return get_val();
     }
 
     template<class... Args, std::enable_if_t<!std::is_nothrow_constructible_v<T, Args&&...>>* = nullptr>
-    void emplace(Args &&... args) {
+    T& emplace(Args &&... args) {
         if (is_ok())
             get_val() = T(std::forward<Args>(args)...);
         else {
+#ifdef RUST_EXCEPTIONS_ENABLED
             auto tmp = std::move(get_err());
+#endif // ^^^RUST_EXCEPTIONS_ENABLED^^^
             get_err().~E();
 #ifdef RUST_EXCEPTIONS_ENABLED
             try {
@@ -953,10 +957,11 @@ public:
             this->is_ok_ = true;
 #endif // RUST_EXCEPTIONS_ENABLED
         }
+        return get_val();
     }
 
     template<class U, class... Args, std::enable_if_t<std::is_nothrow_constructible_v<T, std::initializer_list<U>&, Args&&...>>* = nullptr>
-    void emplace(std::initializer_list<U> il, Args&&... args) {
+    T& emplace(std::initializer_list<U> il, Args&&... args) {
         if (is_ok()) {
             T t(il, std::forward<Args>(args)...);
             get_val() = std::move(t);
@@ -966,16 +971,19 @@ public:
             ::new (val_ptr()) T(il, std::forward<Args>(args)...);
             this->is_ok_ = true;
         }
+        return get_val();
     }
 
-    template<class U, class... Args, std::enable_if_t<!std::is_nothrow_constructible_v<T, std::initializer_list<U>&, Args&&...>> * = nullptr>
-    void emplace(std::initializer_list<U> il, Args &&... args) {
+    template<class U, class... Args, std::enable_if_t<!std::is_nothrow_constructible_v<T, std::initializer_list<U>&, Args&&...>>* = nullptr>
+    T& emplace(std::initializer_list<U> il, Args &&... args) {
         if (is_ok()) {
             T t(il, std::forward<Args>(args)...);
             get_val() = std::move(t);
         } 
         else {
+#ifdef RUST_EXCEPTIONS_ENABLED
             auto tmp = std::move(get_err());
+#endif // ^^^RUST_EXCEPTIONS_ENABLED^^^
             get_err().~E();
 #ifdef RUST_EXCEPTIONS_ENABLED
             try {
@@ -990,6 +998,87 @@ public:
             this->is_ok_ = true;
 #endif // RUST_EXCEPTIONS_ENABLED
         }
+        return get_val();
+    }
+
+    // emplace_err
+    template<class... Args, std::enable_if_t<std::is_nothrow_constructible_v<E, Args&&...>>* = nullptr>
+    E& emplace_err(Args&&... args) {
+        if (is_err())
+            get_err() = E(std::forward<Args>(args)...);
+        else {
+            get_val().~T();
+            ::new (err_ptr()) E(std::forward<Args>(args)...);
+            this->is_ok_ = false;
+        }
+        return get_err();
+    }
+
+    template<class... Args, std::enable_if_t<!std::is_nothrow_constructible_v<E, Args&&...>>* = nullptr>
+    E& emplace_err(Args &&... args) {
+        if (is_err())
+            get_err() = E(std::forward<Args>(args)...);
+        else {
+#ifdef RUST_EXCEPTIONS_ENABLED
+            auto tmp = std::move(get_val());
+#endif // ^^^RUST_EXCEPTIONS_ENABLED^^^
+            get_val().~T();
+#ifdef RUST_EXCEPTIONS_ENABLED
+            try {
+                ::new (err_ptr()) E(std::forward<Args>(args)...);
+                this->is_ok_ = false;
+            } 
+            catch (...) {
+                get_val() = std::move(tmp);
+                throw;
+            }
+#else // ^^^RUST_EXCEPTIONS_ENABLED^^^
+            ::new (err_ptr()) E(std::forward<Args>(args)...);
+            this->is_ok_ = false;
+#endif // RUST_EXCEPTIONS_ENABLED
+        }
+        return get_err();
+    }
+
+    template<class U, class... Args, std::enable_if_t<std::is_nothrow_constructible_v<E, std::initializer_list<U>&, Args&&...>>* = nullptr>
+    E& emplace_err(std::initializer_list<U> il, Args&&... args) {
+        if (is_err()) {
+            E e(il, std::forward<Args>(args)...);
+            get_err() = std::move(e);
+        } 
+        else {
+            get_val().~T();
+            ::new (err_ptr()) E(il, std::forward<Args>(args)...);
+            this->is_ok_ = false;
+        }
+        return get_err();
+    }
+
+    template<class U, class... Args, std::enable_if_t<!std::is_nothrow_constructible_v<E, std::initializer_list<U>&, Args&&...>>* = nullptr>
+    E& emplace(std::initializer_list<U> il, Args &&... args) {
+        if (is_err()) {
+            E e(il, std::forward<Args>(args)...);
+            get_err() = std::move(e);
+        } 
+        else {
+#ifdef RUST_EXCEPTIONS_ENABLED
+            auto tmp = std::move(get_val());
+#endif // ^^^RUST_EXCEPTIONS_ENABLED^^^
+            get_val().~T();
+#ifdef RUST_EXCEPTIONS_ENABLED
+            try {
+                ::new (err_ptr()) E(il, std::forward<Args>(args)...);
+                this->is_ok_ = false;
+            } catch (...) {
+                get_val() = std::move(tmp);
+                throw;
+            }
+#else // ^^^RUST_EXCEPTIONS_ENABLED^^^
+            ::new (err_ptr()) E(il, std::forward<Args>(args)...);
+            this->is_ok_ = false;
+#endif // RUST_EXCEPTIONS_ENABLED
+        }
+        return get_err();
     }
 
     // And
@@ -1725,7 +1814,8 @@ public:
 
     // operator=
     template<class U>
-    Result& operator=(U &&u) {
+    Result& operator=(U&& u) noexcept {
+        static_assert(std::is_lvalue_reference_v<U&&>, "Result<T&, E>::operator=(U) require U to be an lvalue");
         if (is_ok())
             this->value_ = std::addressof(u);
         else {
@@ -1734,6 +1824,92 @@ public:
             this->is_ok_ = true;
         }
         return *this;
+    }
+
+    // emplace
+    template<class U>
+    T& emplace(U&& u) noexcept {
+        static_assert(std::is_lvalue_reference_v<U&&>, "Result<T&, E>::emplace(U) require U to be an lvalue");
+        if (is_ok())
+            this->value_ = std::addressof(u);
+        else {
+            get_err().~E();
+            this->value_ = std::addressof(u);
+            this->is_ok_ = true;
+        }
+        return get_val();
+    }
+
+    // emplace_err
+    template<class... Args, std::enable_if_t<std::is_nothrow_constructible_v<E, Args&&...>>* = nullptr>
+    E& emplace_err(Args&&... args) {
+        if (is_err())
+            get_err() = E(std::forward<Args>(args)...);
+        else {
+            ::new (err_ptr()) E(std::forward<Args>(args)...);
+            this->is_ok_ = false;
+        }
+        return get_err();
+    }
+
+    template<class... Args, std::enable_if_t<!std::is_nothrow_constructible_v<E, Args&&...>>* = nullptr>
+    E& emplace_err(Args &&... args) {
+        if (is_err())
+            get_err() = E(std::forward<Args>(args)...);
+        else {
+#ifdef RUST_EXCEPTIONS_ENABLED
+            auto const tmp = val_ptr();
+            try {
+                ::new (err_ptr()) E(std::forward<Args>(args)...);
+                this->is_ok_ = false;
+            } 
+            catch (...) {
+                val_ptr() = tmp;
+                throw;
+            }
+#else // ^^^RUST_EXCEPTIONS_ENABLED^^^
+            ::new (err_ptr()) E(std::forward<Args>(args)...);
+            this->is_ok_ = false;
+#endif // RUST_EXCEPTIONS_ENABLED
+        }
+        return get_err();
+    }
+
+    template<class U, class... Args, std::enable_if_t<std::is_nothrow_constructible_v<E, std::initializer_list<U>&, Args&&...>>* = nullptr>
+    E& emplace_err(std::initializer_list<U> il, Args&&... args) {
+        if (is_err()) {
+            E e(il, std::forward<Args>(args)...);
+            get_err() = std::move(e);
+        } 
+        else {
+            ::new (err_ptr()) E(il, std::forward<Args>(args)...);
+            this->is_ok_ = false;
+        }
+        return get_err();
+    }
+
+    template<class U, class... Args, std::enable_if_t<!std::is_nothrow_constructible_v<E, std::initializer_list<U>&, Args&&...>>* = nullptr>
+    E& emplace(std::initializer_list<U> il, Args &&... args) {
+        if (is_err()) {
+            E e(il, std::forward<Args>(args)...);
+            get_err() = std::move(e);
+        } 
+        else {
+#ifdef RUST_EXCEPTIONS_ENABLED
+            auto const tmp = val_ptr();
+            try {
+                ::new (err_ptr()) E(il, std::forward<Args>(args)...);
+                this->is_ok_ = false;
+            } catch (...) {
+                val_ptr() = tmp;
+                throw;
+            }
+#else // ^^^RUST_EXCEPTIONS_ENABLED^^^
+            ::new (err_ptr()) E(il, std::forward<Args>(args)...);
+            this->is_ok_ = false;
+#endif // RUST_EXCEPTIONS_ENABLED
+        }
+        return get_err();
     }
 
     // And
@@ -1953,7 +2129,7 @@ private:
             std::swap(this->is_ok_, rhs.is_ok_);
         } 
         catch (...) {
-            get_val() = std::move(temp);
+            get_val() = temp;
             throw;
         }
 #else // ^^^RUST_EXCEPTIONS_ENABLED^^^
@@ -2395,6 +2571,92 @@ public:
 #endif // RUST_EXCEPTIONS_ENABLED
         }
         return *this;
+    }
+
+    // emplace
+    template<class... Args, std::enable_if_t<std::is_nothrow_constructible_v<T, Args&&...>>* = nullptr>
+    T& emplace(Args&&... args) {
+        if (is_ok())
+            get_val() = T(std::forward<Args>(args)...);
+        else {
+            ::new (val_ptr()) T(std::forward<Args>(args)...);
+            this->is_ok_ = true;
+        }
+        return get_val();
+    }
+
+    template<class... Args, std::enable_if_t<!std::is_nothrow_constructible_v<T, Args&&...>>* = nullptr>
+    T& emplace(Args &&... args) {
+        if (is_ok())
+            get_val() = T(std::forward<Args>(args)...);
+        else {
+#ifdef RUST_EXCEPTIONS_ENABLED
+            auto const tmp = err_ptr();
+            try {
+                ::new (val_ptr()) T(std::forward<Args>(args)...);
+                this->is_ok_ = true;
+            } 
+            catch (...) {
+                err_ptr() = tmp;
+                throw;
+            }
+#else // ^^^RUST_EXCEPTIONS_ENABLED^^^
+            ::new (val_ptr()) T(std::forward<Args>(args)...);
+            this->is_ok_ = true;
+#endif // RUST_EXCEPTIONS_ENABLED
+        }
+        return get_val();
+    }
+
+    template<class U, class... Args, std::enable_if_t<std::is_nothrow_constructible_v<T, std::initializer_list<U>&, Args&&...>>* = nullptr>
+    T& emplace(std::initializer_list<U> il, Args&&... args) {
+        if (is_ok()) {
+            T t(il, std::forward<Args>(args)...);
+            get_val() = std::move(t);
+        } 
+        else {
+            ::new (val_ptr()) T(il, std::forward<Args>(args)...);
+            this->is_ok_ = true;
+        }
+        return get_val();
+    }
+
+    template<class U, class... Args, std::enable_if_t<!std::is_nothrow_constructible_v<T, std::initializer_list<U>&, Args&&...>>* = nullptr>
+    T& emplace(std::initializer_list<U> il, Args &&... args) {
+        if (is_ok()) {
+            T t(il, std::forward<Args>(args)...);
+            get_val() = std::move(t);
+        } 
+        else {
+#ifdef RUST_EXCEPTIONS_ENABLED
+            auto const tmp = err_ptr();
+            try {
+                ::new (val_ptr()) T(il, std::forward<Args>(args)...);
+                this->is_ok_ = true;
+            } catch (...) {
+                err_ptr() = tmp;
+                throw;
+            }
+#else // ^^^RUST_EXCEPTIONS_ENABLED^^^
+            ::new (val_ptr()) T(il, std::forward<Args>(args)...);
+            this->is_ok_ = true;
+#endif // RUST_EXCEPTIONS_ENABLED
+        }
+        return get_val();
+    }
+
+    // emplace_err
+    template<class U>
+    E& emplace_err(U&& u) noexcept {
+        static_assert(std::is_lvalue_reference_v<U&&>, "Result<T&, E>::emplace_err(U) require U to be an lvalue");
+        if (is_err())
+            this->err_ = std::addressof(u);
+        else {
+            get_val().~T();
+            this->err_ = std::addressof(u);
+            this->is_ok_ = false;
+        }
+        return get_err();
     }
 
     // And
@@ -3044,6 +3306,24 @@ public:
         return *this;
     }
 
+    // emplace
+    template<class U>
+    T& emplace(U&& u) noexcept {
+        static_assert(std::is_lvalue_reference_v<U&&>, "Result<T&, E&>::emplace(U) require U to be an lvalue");
+        value_ = std::addressof(u);
+        is_ok_ = true;
+        return get_val();
+    }
+
+    // emplace_err
+    template<class U>
+    E& emplace_err(U&& u) noexcept {
+        static_assert(std::is_lvalue_reference_v<U&&>, "Result<T&, E&>::emplace_err(U) require U to be an lvalue");
+        error_ = std::addressof(u);
+        is_ok_ = false;
+        return get_err();
+    }
+
     // And
     template<class U>
     [[nodiscard]] constexpr Result<U, E> And(Result<U, E> const& res) const {
@@ -3139,7 +3419,6 @@ public:
                        : static_cast<R>(std::invoke(std::forward<FnErr>(fnerr), get_err()));   
     }
 
-public:
     // swap
     constexpr void swap(Result& rhs) noexcept {
         if (is_ok() && rhs.is_ok())
@@ -4093,7 +4372,7 @@ public:
         static_assert(std::is_convertible_v<std::invoke_result_t<Fn>, T>,
                       "Option<T>::get_or_insert_with(Fn) requires Fn's return type to be convertible to T");
         if (!*this)
-            static_cast<void>(emplace(std::invoke(std::forward<Fn>(fn)))_;
+            static_cast<void>(emplace(std::invoke(std::forward<Fn>(fn))));
         return std::move(**this);
     }
 
@@ -4462,14 +4741,14 @@ public:
     template<class U>
     [[nodiscard]] constexpr T& get_or_insert(U&& u) && {
         if (!*this)
-            static_cast<void>(emplace(u));
+            static_cast<void>(emplace(std::forward<U>(u)));
         return **this;
     }
 
     template<class U>
     [[nodiscard]] constexpr T const& get_or_insert(U&& u) const&& {
         if (!*this)
-            static_cast<void>(emplace(t));
+            static_cast<void>(emplace(std::forward<U>(u)));
         return **this;
     }
 
